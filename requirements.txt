@@ -1,3 +1,7 @@
-matplotlib
 pandas
 numpy
+pycaret
+ydata-profiling
+tpot
+scikit-learn
+streamlit
