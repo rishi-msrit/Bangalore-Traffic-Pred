@@ -24,21 +24,21 @@ Dataset: [Bangalore Traffic Pulse — Kaggle](https://www.kaggle.com/datasets/pr
 
 | Sr No | Description |
 |---|---|
-| `1` | Load raw data — shape, columns, dtypes |
-| `2` | Data cleaning — parse dates, strip whitespace, check nulls, add time features |
-| `3` | EDA — descriptive stats + correlation with Congestion Level |
-| `4` | Top 5 Chokepoints — ranked by mean Congestion Level |
-| `5` | Economic Impact — productivity loss + fuel waste (₹/day) |
-| `6`| Speed Analysis — average speed per road, chokepoints highlighted |
-| `7` | Capacity Saturation — % of time each road runs at 100% capacity |
-| `8` | Incident Frequency — high vs low congestion zone comparison |
+| `1` | Load raw: data shape, columns, dtypes |
+| `2` | Data cleaning: parse dates, strip whitespace, check nulls, add time features |
+| `3` | EDA  descriptive: stats + correlation with Congestion Level |
+| `4` | Top 5 Chokepoints: ranked by mean Congestion Level |
+| `5` | Economic Impact: productivity loss + fuel waste (₹/day) |
+| `6`| Speed Analysis: average speed per road, chokepoints highlighted |
+| `7` | Capacity Saturation: % of time each road runs at 100% capacity |
+| `8` | Incident Frequency: high vs low congestion zone comparison |
 | `9` | Plot: Economic impact stacked bar (per road) |
 | `10` | Plot: Top 5 chokepoints vs city average (bar chart) |
 | `11` | Plot: Congestion heatmap — Day of Week × Road |
 | `12` | Plot: Monthly trend — Weekday vs Weekend (2022–2024) |
 | `13` | Plot: Average speed per road — all 16 roads |
 | `14` | Plot: Weather conditions vs congestion level |
-| `15` | Congestion Severity Classification — 4-band breakdown |
+| `15` | Congestion Severity Classification: 4-band breakdown |
 | `16` | Final summary printout |
 
 ---
