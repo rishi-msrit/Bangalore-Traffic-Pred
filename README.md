@@ -2,52 +2,6 @@
 
 Dataset: [Bangalore Traffic Pulse — Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 – Aug 2024
 
----
-### Top 5 Chokepoints vs City Average
-Highlights how the worst intersections compare against the overall congestion baseline.
-
-![Top 5 Chokepoints](images/top5_chokepoints.png)
-
----
-
-### Congestion Heatmap (Day × Road)
-Reveals recurring congestion patterns across weekdays and specific roads.
-
-![Heatmap](images/heatmap_day_road.png)
-
----
-
-### Monthly Traffic Trends (2022–2024)
-Compares weekday vs weekend congestion trends over time.
-
-![Monthly Trend](images/monthly_trend.png)
-
----
-
-### Average Speed Across Roads
-Identifies slow-moving corridors and contrasts them with relatively free-flowing roads.
-
-![Speed per Road](images/speed_per_road.png)
-
----
-
-### Weather Impact on Congestion
-Shows how different weather conditions influence congestion levels.
-
-![Weather Impact](images/weather_impact.png)
-
----
-
-## Results & Visualizations
-
-### Economic Impact Analysis
-Shows daily financial loss split into productivity loss and fuel waste across major roads.
-
-![Economic Impact](images/economic_impact.png)
-
----
----
-
 ## Dataset Description
 
 | Field | Description |
@@ -85,8 +39,27 @@ Shows daily financial loss split into productivity loss and fuel waste across ma
 | `15` | Congestion Severity Classification: 4-band breakdown |
 | `16` | Final summary printout |
 
+
 ---
 
+## Results & Visualizations
+
+<div align="center">
+
+<img src="images/economic_impact.png" width="75%"/>
+<br>
+<img src="images/top5_chokepoints.png" width="75%"/>
+<br>
+<img src="images/heatmap_day_road.png" width="75%"/>
+<br>
+<img src="images/monthly_trend.png" width="75%"/>
+<br>
+<img src="images/speed_per_road.png" width="75%"/>
+<br>
+<img src="images/weather_impact.png" width="75%"/>
+</div>
+
+---
 ## Key Findings
 
 ### Chokepoints
