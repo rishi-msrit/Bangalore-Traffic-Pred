@@ -21,7 +21,8 @@ Dataset: [Bangalore Traffic Pulse — Kaggle](https://www.kaggle.com/datasets/pr
 ---
 
 ## Steps Performed
- 
+
+| Sr No | Description |
 |---|---|
 | `1` | Load raw data — shape, columns, dtypes |
 | `2` | Data cleaning — parse dates, strip whitespace, check nulls, add time features |
