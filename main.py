@@ -1,16 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Bangalore Traffic Pattern Analysis
-====================================
-Dataset  : data.csv  (Kaggle - Bangalore Traffic Pulse)
-Libraries: pandas, matplotlib only
-Author   : Rishi
-"""
-
 import os
 import sys
 
-# Fix Windows terminal encoding so rupee symbol prints correctly
 if sys.stdout.encoding != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -18,17 +8,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
-# ─────────────────────────────────────────────
-# CONFIG  — paths relative to this script's folder
-# ─────────────────────────────────────────────
 BASE_DIR    = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH   = os.path.join(BASE_DIR, "data.csv")
 IMAGES_DIR  = os.path.join(BASE_DIR, "images")
 os.makedirs(IMAGES_DIR, exist_ok=True)
 
-# ─────────────────────────────────────────────
-# STEP 1 — LOAD DATA  (original never modified)
-# ─────────────────────────────────────────────
+# STEP 1 — LOAD DATA 
 print("=" * 60)
 print("STEP 1 : Loading & Inspecting Data")
 print("=" * 60)
@@ -38,39 +23,35 @@ print(f"  Rows   : {raw_df.shape[0]:,}")
 print(f"  Columns: {raw_df.shape[1]}")
 print(f"  Columns: {raw_df.columns.tolist()}")
 
-# ─────────────────────────────────────────────
-# STEP 2 — CLEAN DATA  (work on a copy)
-# ─────────────────────────────────────────────
+# STEP 2 — CLEAN DATA 
 print("\n" + "=" * 60)
 print("STEP 2 : Data Cleaning  (original data.csv untouched)")
 print("=" * 60)
 
-df = raw_df.copy()                          # <- always work on this copy
+df = raw_df.copy()                         
 
-# 2a. Parse date column
 df["Date"] = pd.to_datetime(df["Date"])
 
-# 2b. Strip whitespace from text columns
+# Striping whitespace 
 df["Area Name"]             = df["Area Name"].str.strip()
 df["Road/Intersection Name"] = df["Road/Intersection Name"].str.strip()
 df["Weather Conditions"]    = df["Weather Conditions"].str.strip()
 
-# 2c. Add useful time features
+# Addin useful time features
 df["DayOfWeek"]  = df["Date"].dt.day_name()
 df["Month"]      = df["Date"].dt.month
-df["MonthName"]  = df["Date"].dt.strftime("%b")   # Jan, Feb …
+df["MonthName"]  = df["Date"].dt.strftime("%b")
 df["WeekType"]   = df["DayOfWeek"].apply(
     lambda d: "Weekend" if d in ["Saturday", "Sunday"] else "Weekday"
 )
 
-# 2d. Check and report missing values
+#(missing value check logic)
 missing = df.isnull().sum()
 if missing.sum() == 0:
     print("  No missing values found — dataset is clean.")
 else:
     print("  Missing values detected:")
     print(missing[missing > 0])
-    # Drop rows with nulls in key columns only
     key_cols = ["Congestion Level", "Traffic Volume", "Average Speed",
                 "Road/Intersection Name", "Area Name"]
     before = len(df)
@@ -79,9 +60,7 @@ else:
 
 print(f"  Working dataset: {len(df):,} rows")
 
-# ─────────────────────────────────────────────
-# STEP 3 — BASIC EDA  (printed summary)
-# ─────────────────────────────────────────────
+# (printed summary)
 print("\n" + "=" * 60)
 print("STEP 3 : Basic Exploratory Data Analysis")
 print("=" * 60)
@@ -93,20 +72,16 @@ numeric_cols = ["Traffic Volume", "Average Speed",
 print("\n  Descriptive Statistics:")
 print(df[numeric_cols].describe().round(2).to_string())
 
-# Correlation — useful for README / insight
 print("\n  Correlation with Congestion Level:")
 corr = df[numeric_cols].corr()["Congestion Level"].drop("Congestion Level")
 for col, val in corr.sort_values(ascending=False).items():
     print(f"    {col:<30} : {val:+.3f}")
 
-# ─────────────────────────────────────────────
-# STEP 4 — TOP 5 CHOKEPOINTS
-# ─────────────────────────────────────────────
+# TOP 5 CHOKEPOINTS
 print("\n" + "=" * 60)
 print("STEP 4 : Identifying Top 5 Chokepoints")
 print("=" * 60)
 
-# Mean congestion per road (higher = worse)
 road_congestion = (
     df.groupby("Road/Intersection Name")["Congestion Level"]
     .mean()
@@ -129,7 +104,6 @@ for rank, (road, val) in enumerate(top5.items(), start=1):
     print(f"  #{rank}  {road:<28}  {val:.2f}  (+{diff:.2f} above avg)")
 print("  " + "-" * 45)
 
-# Also pull worst area (Area Name level)
 area_congestion = (
     df.groupby("Area Name")["Congestion Level"]
     .mean()
@@ -139,37 +113,33 @@ print("\n  Congestion by Area (all 8 areas):")
 for area, val in area_congestion.items():
     print(f"    {area:<20} : {val:.2f}")
 
-# ─────────────────────────────────────────────
-# STEP 5 — LOST PRODUCTIVITY & ECONOMIC IMPACT
-#          All values derived from the dataset
-# ─────────────────────────────────────────────
+#  LOST PRODUCTIVITY & ECONOMIC IMPACT
 print("\n" + "=" * 60)
 print("STEP 5 : Productivity Loss & Economic Impact Estimate")
 print("=" * 60)
 
-# --- Assumptions (stated clearly) ---
-WAIT_TIME_MIN   = 15        # minutes average wait at a chokepoint (project spec)
-WAGE_PER_HOUR   = 150       # ₹/hr — Bangalore median income ~₹30,000/mo ÷ 200 hrs
-FUEL_PER_IDLE   = 0.2       # litres wasted per 15-min idle (standard estimate)
-FUEL_PRICE      = 103       # ₹/litre (Bangalore petrol ~2024)
+# Assumptions as the dataset has some missing data,like avg wait time 
+WAIT_TIME_MIN   = 15        # minutes average wait at a chokepoint
+WAGE_PER_HOUR   = 150       # rupee/hr — Bangalore median income ~₹30,000/mo ÷ 200 hrs
+FUEL_PER_IDLE   = 0.2       # litres wasted per 15-min idle 
+FUEL_PRICE      = 103       # rupee/litre 
 
-# --- Values from the dataset ---
 # Average daily traffic volume across all 16 roads
 avg_daily_vol_per_road = df.groupby(
     ["Date", "Road/Intersection Name"]
 )["Traffic Volume"].mean().groupby(level=1).mean()
 
 top5_roads = top5.index.tolist()
-top5_daily_vol = avg_daily_vol_per_road[top5_roads].sum()  # total across 5 roads
+top5_daily_vol = avg_daily_vol_per_road[top5_roads].sum()
 
 # Productivity loss
 wage_per_min          = WAGE_PER_HOUR / 60
-productivity_per_veh  = WAIT_TIME_MIN * wage_per_min          # ₹ per vehicle
-total_prod_loss       = productivity_per_veh * top5_daily_vol  # ₹ per day
+productivity_per_veh  = WAIT_TIME_MIN * wage_per_min
+total_prod_loss       = productivity_per_veh * top5_daily_vol  
 
 # Fuel loss
-fuel_cost_per_veh = FUEL_PER_IDLE * FUEL_PRICE                 # ₹ per vehicle
-total_fuel_loss   = fuel_cost_per_veh * top5_daily_vol          # ₹ per day
+fuel_cost_per_veh = FUEL_PER_IDLE * FUEL_PRICE              
+total_fuel_loss   = fuel_cost_per_veh * top5_daily_vol       
 
 grand_total = total_prod_loss + total_fuel_loss
 
@@ -192,20 +162,15 @@ print(f"  ├──────────────────────�
 print(f"  │  GRAND TOTAL DAILY IMPACT       : ₹{grand_total:,.0f}       │")
 print(f"  └─────────────────────────────────────────────────────┘")
 
-# ─────────────────────────────────────────────
-# STEP 6 — AVERAGE SPEED PER ROAD
-#   Congestion levels are abstract; speed (km/h)
-#   is what people actually feel on the road.
-# ─────────────────────────────────────────────
+#AVERAGE SPEED PER ROAD
 print("\n" + "=" * 60)
 print("STEP 6 : Average Speed Analysis per Road")
 print("=" * 60)
 
-# Mean speed per road, sorted slowest to fastest
 speed_per_road = (
     df.groupby("Road/Intersection Name")["Average Speed"]
     .mean()
-    .sort_values()                 # slowest first
+    .sort_values()
 )
 
 city_speed_avg = df["Average Speed"].mean()
@@ -263,16 +228,11 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"\n  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 7 — ROAD CAPACITY SATURATION
-#   74.2% of all records show roads at 100%
-#   capacity — a structural overload finding
-# ─────────────────────────────────────────────
+# ROAD CAPACITY SATURATION
 print("\n" + "=" * 60)
 print("STEP 7 : Road Capacity Saturation Analysis")
 print("=" * 60)
 
-# % of time each road is at full capacity (>=99%)
 cap_sat = (
     df.groupby("Road/Intersection Name")
     .apply(lambda g: (g["Road Capacity Utilization"] >= 99).mean() * 100,
@@ -297,11 +257,7 @@ bot5_cap_avg = cap_sat[bot5_roads].mean()
 print(f"\n  Top-5 chokepoints at full capacity: {top5_cap_avg:.1f}% of the time")
 print(f"  Bottom-5 roads at full capacity   : {bot5_cap_avg:.1f}% of the time")
 
-# ─────────────────────────────────────────────
-# STEP 8 — INCIDENT FREQUENCY ANALYSIS
-#   Does congestion actually lead to more
-#   accidents and incidents?
-# ─────────────────────────────────────────────
+#  INCIDENT FREQUENCY ANALYSIS
 print("\n" + "=" * 60)
 print("STEP 8 : Incident Frequency at High vs Low Congestion Zones")
 print("=" * 60)
@@ -319,18 +275,14 @@ print(f"\n  Avg incidents — High congestion (>75) : {inc_by_band['High (>75)']
 print(f"  Avg incidents — Low congestion (≤75)  : {inc_by_band['Low (≤75)']:.2f} per record")
 print(f"  High-congestion zones see {inc_ratio:.1f}x more incidents than low-congestion zones")
 
-# Per-road comparison: top 5 vs bottom 5
 top5_inc = df[df["Road/Intersection Name"].isin(top5_roads)]["Incident Reports"].mean()
 bot5_inc  = df[df["Road/Intersection Name"].isin(bot5_roads)]["Incident Reports"].mean()
 print(f"\n  Top-5 chokepoints avg incidents  : {top5_inc:.2f}")
 print(f"  Bottom-5 roads avg incidents     : {bot5_inc:.2f}")
 print(f"  Ratio: {top5_inc / bot5_inc:.1f}x more incidents at major chokepoints")
 
-# ─────────────────────────────────────────────
-# STEP 9 — PLOT: ECONOMIC IMPACT — Stacked Bar
-#   Backs the productivity + fuel loss claim
-#   with a per-road visual breakdown
-# ─────────────────────────────────────────────
+# PLOTS
+
 print("\n" + "=" * 60)
 print("STEP 6 : Plot 1 — Daily Economic Impact (Stacked Bar)")
 print("=" * 60)
@@ -379,9 +331,6 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 7 — PLOT 2: BAR CHART — Top 5 Chokepoints
-# ─────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("STEP 7 : Plot 2 — Top 5 Chokepoints Bar Chart")
 print("=" * 60)
@@ -414,11 +363,6 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 7 — PLOT 2: HEATMAP — Day × Area
-#   Note: dataset has no Hour column, so we use
-#   Day-of-Week × Area  which is equally useful
-# ─────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("STEP 8 : Plot 3 — Heatmap (Day of Week × Location)")
 print("=" * 60)
@@ -460,9 +404,6 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 8 — PLOT 3: LINE — Monthly Congestion Trend
-# ─────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("STEP 9 : Plot 4 — Monthly Congestion Trend")
 print("=" * 60)
@@ -516,11 +457,6 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 9 — CONGESTION SEVERITY CLASSIFICATION
-#   Categorise every record into 4 severity bands
-#   and show how much of Bangalore is in each tier
-# ─────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("STEP 9 : Congestion Severity Classification")
 print("=" * 60)
@@ -568,10 +504,6 @@ top5_vol_share = (
 )
 print(f"\n  Top 5 roads handle {top5_vol_share:.1f}% of total measured traffic volume")
 
-# ─────────────────────────────────────────────
-# STEP 10 — WEATHER IMPACT ANALYSIS + PLOT
-#   Does weather make congestion worse?
-# ─────────────────────────────────────────────
 print("\n" + "=" * 60)
 print("STEP 10: Weather Impact on Congestion")
 print("=" * 60)
@@ -627,9 +559,7 @@ plt.savefig(save_path, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"\n  Saved → {save_path}")
 
-# ─────────────────────────────────────────────
-# STEP 11 — FINAL SUMMARY PRINTOUT
-# ─────────────────────────────────────────────
+#  FINAL SUMMARY PRINTOUT
 print("\n" + "=" * 60)
 print("ANALYSIS COMPLETE — KEY FINDINGS")
 print("=" * 60)
