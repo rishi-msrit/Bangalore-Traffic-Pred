@@ -8,7 +8,7 @@ This project has two layers built on the same dataset:
 2. **Interactive web layer** (`build_data.py` + `web/`) - all analysis recomputed and exported to JSON, consumed by a 5-page static site with Chart.js charts, a road explorer, and a technical/analyst section.
 
 Dataset: [Bangalore Traffic Pulse - Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 to Aug 2024
----
+
 
 ## Dataset Description
 
