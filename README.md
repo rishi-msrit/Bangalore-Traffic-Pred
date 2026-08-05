@@ -1,7 +1,7 @@
 # Bangalore Traffic Pattern Analysis
 
 Live Web App: [https://bangalore-traffic-pred.vercel.app/](https://bangalore-traffic-pred.vercel.app/)
-
+---
 This project has two layers built on the same dataset:
 
 1. **Static Python analysis** (`main.py`) - pandas and matplotlib pipeline that cleans the data, computes all findings, and saves 6 plots as PNGs.
