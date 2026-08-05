@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Analysis - Bangalore Traffic Analysis</title>
+  <meta name="description" content="Correlation matrix, regression model coefficients and metrics, k-means road clustering, and per-road anomaly flags from the Bangalore traffic dataset.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+  <style>
+    .tech-intro {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      font-size: .88rem;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .corr-cell-label {
+      font-size: .68rem;
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Bangalore <span>Traffic</span></a>
+  <div class="nav-links">
+    <a href="index.html">Overview</a>
+    <a href="explorer.html">Road Explorer</a>
+    <a href="patterns.html">Patterns</a>
+    <a href="impact.html">Economic Impact</a>
+    <a href="technical.html" class="active">Technical</a>
+  </div>
+  <div class="nav-right">
+    <button id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <h1>
+      Technical Analysis
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">This section covers the statistical and machine-learning layer of the project: a full correlation matrix across all numeric fields, a linear regression model predicting Congestion Level, k-means clustering of roads into behavioral archetypes, and per-road anomaly detection using z-scores.</span>
+      </span>
+    </h1>
+    <p>Correlation, regression, clustering, and anomaly detection -- the full analytical layer.</p>
+  </div>
+
+  <div class="tech-intro">
+    This page is for those who want to see the methodology behind the numbers on the other pages. All computations were done once offline in Python and exported as static data -- nothing here runs live. The regression and clustering are supporting evidence for the narrative findings, not an end in themselves.
+  </div>
+
+  <!-- CORRELATION -->
+  <div class="section-label">Correlation matrix</div>
+  <div class="panel">
+    <div class="panel-title">
+      Pairwise correlations: all numeric fields
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Pearson correlation between every pair of numeric columns. Values range from -1 (perfect inverse relationship) to +1 (perfect positive relationship). 0 means no linear relationship. Darker red = stronger positive correlation; darker blue = stronger negative correlation.</span>
+      </span>
+    </div>
+    <div style="overflow-x:auto">
+      <canvas id="chart-corr"></canvas>
+    </div>
+  </div>
+
+  <!-- REGRESSION -->
+  <div class="section-label">Linear regression -- predicting congestion level</div>
+  <div class="panel">
+    <div class="panel-title">Model metrics</div>
+    <div class="two-col">
+      <div>
+        <div class="metric-row">
+          <div class="metric-name">R squared</div>
+          <div class="metric-val" id="metric-r2">--</div>
+          <div class="metric-desc" id="desc-r2">Proportion of variance explained (0 to 1, higher is better).</div>
+        </div>
+        <div class="metric-row">
+          <div class="metric-name">MAE</div>
+          <div class="metric-val" id="metric-mae">--</div>
+          <div class="metric-desc" id="desc-mae">Average prediction error in congestion-level units (0-100 scale).</div>
+        </div>
+      </div>
+      <div style="font-size:.83rem; color:var(--text-muted); line-height:1.6; padding-top:4px">
+        Target variable: <strong style="color:var(--text)">Congestion Level</strong> (0-100 scale).<br>
+        Model: ordinary least squares, all features standardised before fitting.<br>
+        Coefficients reflect each feature's predictive contribution at equal scale.
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      Feature coefficients: sorted by absolute magnitude
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">After standardising all features, the coefficient shows how much Congestion Level changes per one standard-deviation shift in that feature. A larger absolute value means more predictive weight. Red bars are positive relationships; blue bars are inverse (negative) relationships.</span>
+      </span>
+    </div>
+    <div id="coef-table"></div>
+  </div>
+
+  <!-- CLUSTERING -->
+  <div class="section-label">Road clustering (k-means, k = 4)</div>
+  <div class="panel">
+    <div class="panel-title">
+      Road archetypes: PCA scatter
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Each point is one of the 16 roads. Position is determined by the first two principal components (PCA) of six road-level features: mean congestion, mean speed, capacity saturation, incident rate, traffic volume, and travel time index. Roads grouped by colour share similar behavioral profiles. PCA reduces 6 dimensions to 2 for plotting -- the axes have no direct unit interpretation.</span>
+      </span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-scatter" height="320"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Cluster assignments</div>
+    <div id="cluster-table"></div>
+  </div>
+
+  <!-- ANOMALIES -->
+  <div class="section-label">Anomaly flags</div>
+  <div class="panel">
+    <div class="panel-title">
+      Per-road congestion spikes (z-score above 2.5)
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Each row is a date-road combination where the recorded Congestion Level was more than 2.5 standard deviations above that road's own historical mean. This flags genuine outliers relative to each road's baseline, not just high absolute values. A z-score of 2.5 means the observation sits in roughly the top 0.6% of that road's distribution.</span>
+      </span>
+    </div>
+    <div id="anomaly-table"></div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/info.js"></script>
+<script>
+(function () {
+  var DATA_ROOT = '/data/';
+  var CLUSTER_COLORS = ['#c0392b','#2980b9','#27ae60','#8e44ad'];
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function truncate(s, n) { return s.length > n ? s.slice(0, n - 1) + '...' : s; }
+
+  // Correlation matrix
+  fetch(DATA_ROOT + 'correlation.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var cols = d.columns;
+      var mat  = d.matrix;
+      var n    = cols.length;
+      var size = 52;
+
+      var canvas = document.getElementById('chart-corr');
+      canvas.width  = n * size + 120;
+      canvas.height = n * size + 100;
+
+      var ctx = canvas.getContext('2d');
+      var labelColor = css('--text');
+      var mutedColor = css('--text-muted');
+
+      function corrColor(v) {
+        if (v > 0) {
+          var t = v;
+          return 'rgba(192,57,43,' + (0.12 + t * 0.85) + ')';
+        } else {
+          var t2 = -v;
+          return 'rgba(41,128,185,' + (0.12 + t2 * 0.85) + ')';
+        }
+      }
+
+      var offX = 110, offY = 20;
+      ctx.font = '9px Inter, system-ui, sans-serif';
+
+      for (var i = 0; i < n; i++) {
+        for (var j = 0; j < n; j++) {
+          var v = mat[i][j];
+          ctx.fillStyle = corrColor(v);
+          ctx.fillRect(offX + j * size, offY + i * size, size - 2, size - 2);
+          ctx.fillStyle = Math.abs(v) > 0.5 ? '#fff' : labelColor;
+          ctx.textAlign = 'center';
+          ctx.fillText(v.toFixed(2), offX + j * size + size / 2 - 1, offY + i * size + size / 2 + 4);
+        }
+      }
+
+      ctx.fillStyle = mutedColor;
+      ctx.textAlign = 'right';
+      for (var i2 = 0; i2 < n; i2++) {
+        ctx.fillText(truncate(cols[i2], 18), offX - 6, offY + i2 * size + size / 2 + 4);
+      }
+      ctx.textAlign = 'left';
+      for (var j2 = 0; j2 < n; j2++) {
+        ctx.save();
+        ctx.translate(offX + j2 * size + size / 2, offY + n * size + 10);
+        ctx.rotate(-Math.PI / 3);
+        ctx.fillText(truncate(cols[j2], 16), 0, 0);
+        ctx.restore();
+      }
+    });
+
+  // Regression model
+  fetch(DATA_ROOT + 'model.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('metric-r2').textContent  = d.r2;
+      document.getElementById('metric-mae').textContent = d.mae.toFixed(3);
+
+      var maxAbs = Math.max.apply(null, d.coefficients.map(function (c) { return Math.abs(c.coef); }));
+      var html   = '';
+      d.coefficients.forEach(function (c) {
+        var pct   = Math.abs(c.coef) / maxAbs * 100;
+        var isNeg = c.coef < 0;
+        html += '<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">' +
+          '<div style="font-size:.82rem;min-width:190px;color:var(--text)">' + c.feature + '</div>' +
+          '<div style="min-width:60px;font-size:.85rem;font-weight:600;color:' + (isNeg ? '#2980b9' : '#c0392b') + '">' + (c.coef > 0 ? '+' : '') + c.coef.toFixed(4) + '</div>' +
+          '<div style="flex:1">' +
+            '<div style="height:8px;border-radius:4px;background:' + (isNeg ? '#2980b9' : '#c0392b') + ';width:' + pct + '%;opacity:.75"></div>' +
+          '</div>' +
+        '</div>';
+      });
+      document.getElementById('coef-table').innerHTML = html;
+    });
+
+  // Clustering scatter
+  fetch(DATA_ROOT + 'clusters.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var descriptors = d.cluster_descriptors;
+      var byCluster   = [[], [], [], []];
+      d.roads.forEach(function (r) { byCluster[r.cluster].push(r); });
+
+      var datasets = byCluster.map(function (group, ci) {
+        return {
+          label: descriptors[ci],
+          data:  group.map(function (r) { return { x: r.pca_x, y: r.pca_y, road: r.road }; }),
+          backgroundColor: CLUSTER_COLORS[ci],
+          pointRadius: 8,
+          pointHoverRadius: 10,
+        };
+      });
+
+      new Chart(document.getElementById('chart-scatter'), {
+        type: 'scatter',
+        data: { datasets: datasets },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: css('--text'), font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return ctx.raw.road;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'PCA component 1', color: css('--text-muted'), font: { size: 11 } },
+              grid:  { color: css('--border') },
+              ticks: { color: css('--text-muted'), font: { size: 10 } }
+            },
+            y: {
+              title: { display: true, text: 'PCA component 2', color: css('--text-muted'), font: { size: 11 } },
+              grid:  { color: css('--border') },
+              ticks: { color: css('--text-muted'), font: { size: 10 } }
+            }
+          }
+        }
+      });
+
+      var tbl = '<table><thead><tr><th>Road</th><th>Cluster</th><th>Mean Congestion</th><th>Mean Speed</th></tr></thead><tbody>';
+      d.roads.slice().sort(function (a, b) { return a.cluster - b.cluster; }).forEach(function (r) {
+        tbl += '<tr>' +
+          '<td>' + r.road + '</td>' +
+          '<td><span class="badge" style="background:' + CLUSTER_COLORS[r.cluster] + '22;color:' + CLUSTER_COLORS[r.cluster] + '">' + r.descriptor + '</span></td>' +
+          '<td>' + r.mean_congestion + '</td>' +
+          '<td>' + r.mean_speed + ' km/h</td>' +
+        '</tr>';
+      });
+      tbl += '</tbody></table>';
+      document.getElementById('cluster-table').innerHTML = tbl;
+    });
+
+  // Anomalies
+  fetch(DATA_ROOT + 'anomalies.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var show = d.records.slice(0, 40);
+      var tbl  = '<p style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px">' +
+        d.total_flags + ' total flags at z-score above ' + d.threshold_z + '. Showing top 40 by z-score.</p>' +
+        '<table><thead><tr><th>Road</th><th>Date</th><th>Day</th><th>Congestion</th><th>Z-score</th><th>Weather</th></tr></thead><tbody>';
+      show.forEach(function (r) {
+        tbl += '<tr>' +
+          '<td>' + r.road + '</td>' +
+          '<td>' + r.date + '</td>' +
+          '<td>' + r.day.slice(0, 3) + '</td>' +
+          '<td><span class="badge badge-critical">' + r.congestion + '</span></td>' +
+          '<td>' + r.z_score + '</td>' +
+          '<td>' + r.weather + '</td>' +
+        '</tr>';
+      });
+      tbl += '</tbody></table>';
+      document.getElementById('anomaly-table').innerHTML = tbl;
+    });
+})();
+</script>
+</body>
+</html>

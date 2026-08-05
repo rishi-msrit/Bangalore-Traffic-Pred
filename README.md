@@ -122,3 +122,74 @@ python -X utf8 main.py
 > The `-X utf8` flag ensures the ₹ symbol prints correctly on Windows.
 
 ---
+
+## Interactive Web Layer
+
+**Live site:** [link to be added after Vercel deployment]
+
+A static, no-backend interactive website built on top of the same dataset and analysis. All computation runs once offline in Python (`build_data.py`), results are exported to structured JSON files, and the site reads those files client-side at load time using `fetch()`. No server, no live backend, no API.
+
+### Why this architecture
+
+The underlying data does not change in real time. Running computation once and serving static JSON is faster, cheaper (free on Vercel), and more portable than maintaining a live backend. This is a standard pattern for dashboards built on fixed datasets.
+
+### Pages
+
+| Page | Audience | What it shows |
+|---|---|---|
+| Overview | General | City-wide KPI strip, top-5 chokepoints bar, severity distribution, all-roads speed comparison |
+| Road Explorer | General | Per-road profile: monthly congestion trend vs city average, severity breakdown, speed, capacity saturation, incident rate |
+| Patterns | General | Day-of-week x road congestion heatmap, weekday vs weekend monthly trend, weather-impact bar chart |
+| Economic Impact | General | Rs 1.07 crore/day breakdown by road and by cost type (productivity vs fuel), assumptions displayed |
+| Technical | Analysts | Full correlation matrix, linear regression coefficients and metrics (R2, MAE), k-means road clustering PCA scatter, anomaly flag table |
+
+### Project structure (new files)
+
+```
+build_data.py          offline computation script (run once to regenerate data/)
+data/                  generated JSON files consumed by the site
+  kpis.json
+  roads.json
+  heatmap.json
+  weather.json
+  economic.json
+  correlation.json
+  model.json
+  clusters.json
+  anomalies.json
+  monthly_trend.json
+web/                   static site (HTML, CSS, vanilla JS)
+  index.html
+  explorer.html
+  patterns.html
+  impact.html
+  technical.html
+  css/style.css
+  js/theme.js          light/dark mode toggle
+  js/info.js           reusable info tooltip component
+vercel.json            Vercel routing config
+```
+
+### How to run locally
+
+```bash
+pip install pandas scikit-learn numpy
+python -X utf8 build_data.py
+python -m http.server 8765
+```
+
+Then open `http://localhost:8765/web/index.html` in a browser.
+
+### How to regenerate data
+
+If `data.csv` is updated, run `build_data.py` again. It overwrites all JSON files in `data/` and does not touch `main.py` or any other existing file.
+
+### Deploying to Vercel
+
+Connect the repo to Vercel. The `vercel.json` at the repo root handles routing so that `/web/` pages and `/data/` JSON files are both accessible from the same deployment.
+
+### Screenshots
+
+[to be added after deployment]
+
+---

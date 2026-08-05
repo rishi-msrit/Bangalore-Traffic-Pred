@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bangalore Traffic Analysis</title>
+  <meta name="description" content="An analysis of traffic congestion patterns across Bangalore's 16 major roads, covering chokepoints, economic impact, weather effects, and road archetypes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Bangalore <span>Traffic</span></a>
+  <div class="nav-links">
+    <a href="index.html" class="active">Overview</a>
+    <a href="explorer.html">Road Explorer</a>
+    <a href="patterns.html">Patterns</a>
+    <a href="impact.html">Economic Impact</a>
+    <a href="technical.html">Technical</a>
+  </div>
+  <div class="nav-right">
+    <button id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <h1>
+      City Overview
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">This page summarises the state of traffic across Bangalore's 16 major roads and 8 zones, using data from January 2022 to August 2024. The numbers here are averages and estimates derived from 8,936 observations.</span>
+      </span>
+    </h1>
+    <p>8,936 records across 16 roads and 8 zones, January 2022 to August 2024.</p>
+  </div>
+
+  <div class="kpi-strip" id="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-label">City avg congestion</div>
+      <div class="kpi-value" id="kpi-congestion">--</div>
+      <div class="kpi-sub">out of 100</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Critical severity</div>
+      <div class="kpi-value accent" id="kpi-critical">--</div>
+      <div class="kpi-sub">of all observations</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">At full capacity</div>
+      <div class="kpi-value accent" id="kpi-full-cap">--</div>
+      <div class="kpi-sub">roads structurally saturated</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Daily economic loss</div>
+      <div class="kpi-value accent-2" id="kpi-daily-loss">--</div>
+      <div class="kpi-sub">top 5 chokepoints</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+
+    <div class="panel">
+      <div class="panel-title">
+        Top 5 chokepoints
+        <span class="info-wrap">
+          <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+          <span class="info-tooltip">Roads ranked by their average Congestion Level (0-100 scale). The city average is shown as a reference line. Higher means slower, more crowded conditions.</span>
+        </span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-top5" height="220"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">
+        Severity distribution
+        <span class="info-wrap">
+          <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+          <span class="info-tooltip">Each observation is classified by its Congestion Level: Critical (above 90), High (75-90), Moderate (50-75), or Low (below 50). This shows how often Bangalore roads fall into each band.</span>
+        </span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-severity" height="220"></canvas></div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">The core finding</div>
+    <div class="finding">
+      <strong>52.3%</strong> of all observations fall in the Critical band (congestion above 90). The top 5 roads are at full road capacity <strong>89.8% of the time</strong>. This is not peak-hour overload -- it is structural saturation that persists across all days and most weather conditions. Five roads (Sony World Junction, Sarjapur Road, Anil Kumble Circle, Trinity Circle, CMH Road) account for <strong>52.3% of total measured traffic volume</strong> while averaging a congestion score of 91.5, which is 13.2% above the city mean.
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      All 16 roads -- average speed
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Average vehicle speed recorded at each road. Red bars are the top 5 most congested roads. The dashed line marks the city-wide average. Slower speed generally means more congestion.</span>
+      </span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-speed" height="340"></canvas></div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/info.js"></script>
+<script>
+(function () {
+  var DATA_ROOT = '/data/';
+
+  function fmt_crore(v) {
+    if (v >= 1e7) return (v / 1e7).toFixed(2) + ' cr';
+    if (v >= 1e5) return (v / 1e5).toFixed(1) + ' L';
+    return v.toLocaleString('en-IN');
+  }
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  fetch(DATA_ROOT + 'kpis.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      document.getElementById('kpi-congestion').textContent = d.city_avg_congestion;
+      document.getElementById('kpi-critical').textContent   = d.pct_critical + '%';
+      document.getElementById('kpi-full-cap').textContent   = d.pct_full_capacity + '%';
+      document.getElementById('kpi-daily-loss').textContent = 'Rs ' + fmt_crore(d.daily_loss_total);
+
+      var top5Names  = d.top5_roads.map(function (r) { return r.name; });
+      var top5Vals   = d.top5_roads.map(function (r) { return r.congestion; });
+      var cityAvg    = d.city_avg_congestion;
+
+      new Chart(document.getElementById('chart-top5'), {
+        type: 'bar',
+        data: {
+          labels: top5Names.map(function (n) { return n.length > 20 ? n.slice(0, 18) + '...' : n; }),
+          datasets: [{
+            label: 'Mean Congestion Level',
+            data: top5Vals,
+            backgroundColor: ['#c0392b','#c0392b','#c0392b','#c0392b','#c0392b'],
+            borderWidth: 0,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            annotation: {},
+            tooltip: {
+              callbacks: {
+                label: function (ctx) { return ' ' + ctx.raw + ' / 100'; }
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 70,
+              max: 100,
+              grid: { color: css('--border') },
+              ticks: { color: css('--text-muted'), font: { size: 11 } }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: css('--text'), font: { size: 11 } }
+            }
+          }
+        },
+        plugins: [{
+          id: 'city-avg-line',
+          afterDraw: function (chart) {
+            var ctx    = chart.ctx;
+            var xScale = chart.scales.x;
+            var x      = xScale.getPixelForValue(cityAvg);
+            var top    = chart.chartArea.top;
+            var bottom = chart.chartArea.bottom;
+            ctx.save();
+            ctx.strokeStyle = '#6b6b6b';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(x, top);
+            ctx.lineTo(x, bottom);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#6b6b6b';
+            ctx.font      = '10px Inter, system-ui, sans-serif';
+            ctx.fillText('City avg ' + cityAvg, x + 4, top + 12);
+            ctx.restore();
+          }
+        }]
+      });
+
+      var sevData = d.severity_breakdown;
+      new Chart(document.getElementById('chart-severity'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Critical', 'High', 'Moderate', 'Low'],
+          datasets: [{
+            data: [sevData.Critical, sevData.High, sevData.Moderate, sevData.Low],
+            backgroundColor: ['#c0392b','#d35400','#e2b90f','#27ae60'],
+            borderWidth: 0,
+            hoverOffset: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          cutout: '62%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: { color: css('--text'), font: { size: 11 }, padding: 14 }
+            },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) { return ' ' + ctx.label + ': ' + ctx.raw + '%'; }
+              }
+            }
+          }
+        }
+      });
+    })
+    .catch(function (e) { console.error('kpis.json', e); });
+
+  fetch(DATA_ROOT + 'roads.json')
+    .then(function (r) { return r.json(); })
+    .then(function (roads) {
+      var top5set = new Set(['Sony World Junction','Sarjapur Road','Anil Kumble Circle','Trinity Circle','CMH Road']);
+      var entries = Object.entries(roads).sort(function (a, b) { return a[1].mean_speed - b[1].mean_speed; });
+      var labels  = entries.map(function (e) { return e[0]; });
+      var speeds  = entries.map(function (e) { return e[1].mean_speed; });
+      var colors  = entries.map(function (e) { return top5set.has(e[0]) ? '#c0392b' : '#2980b9'; });
+
+      new Chart(document.getElementById('chart-speed'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Avg Speed (km/h)',
+            data: speeds,
+            backgroundColor: colors,
+            borderWidth: 0,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) { return ' ' + ctx.raw + ' km/h'; }
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 30,
+              grid: { color: css('--border') },
+              ticks: {
+                color: css('--text-muted'),
+                font: { size: 11 },
+                callback: function (v) { return v + ' km/h'; }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { color: css('--text'), font: { size: 11 } }
+            }
+          }
+        }
+      });
+    })
+    .catch(function (e) { console.error('roads.json', e); });
+})();
+</script>
+</body>
+</html>

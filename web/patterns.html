@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Time and Weather Patterns - Bangalore Traffic Analysis</title>
+  <meta name="description" content="Day-of-week congestion heatmap, monthly trend, and weather-impact breakdown for Bangalore traffic.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Bangalore <span>Traffic</span></a>
+  <div class="nav-links">
+    <a href="index.html">Overview</a>
+    <a href="explorer.html">Road Explorer</a>
+    <a href="patterns.html" class="active">Patterns</a>
+    <a href="impact.html">Economic Impact</a>
+    <a href="technical.html">Technical</a>
+  </div>
+  <div class="nav-right">
+    <button id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <h1>
+      Time and Weather Patterns
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">This page answers two questions: Does congestion vary by day of the week or month? And does weather make it worse? Each chart draws from aggregated data across all observations from 2022 to 2024.</span>
+      </span>
+    </h1>
+    <p>When is traffic worst, and does weather play a meaningful role?</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      Congestion heatmap: day of week by road
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Each cell shows the average Congestion Level (0-100) for a specific road on a specific day of the week. Darker red means higher congestion. Roads are sorted by overall congestion level. Hover over a cell for the exact value.</span>
+      </span>
+    </div>
+    <div id="heatmap-container" style="overflow-x:auto">
+      <canvas id="chart-heatmap"></canvas>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">
+        Monthly trend: weekday vs weekend
+        <span class="info-wrap">
+          <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+          <span class="info-tooltip">Average Congestion Level per calendar month, split by weekdays and weekends. If weekday and weekend lines track closely, it confirms the congestion is not primarily commuter-driven -- it is structural.</span>
+        </span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-monthly" height="260"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">
+        Weather conditions vs congestion
+        <span class="info-wrap">
+          <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+          <span class="info-tooltip">Mean Congestion Level grouped by weather condition. The dashed line marks the Clear-weather baseline. A bar below the baseline means that weather type actually sees slightly less congestion -- which points to structural overload rather than weather-driven problems.</span>
+        </span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-weather" height="260"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">The pattern finding</div>
+    <div class="finding">
+      Congestion in Bangalore does not follow a typical commuter curve. Weekday and weekend congestion levels track within 2-3 points of each other across all months. Rain and Overcast conditions record congestion <em>below</em> the Clear-weather baseline of 80.72, while Windy weather produces the highest reading (82.37 -- only 1.65 points above Clear). The data points to one conclusion: the overload is structural and road-capacity-driven, not time-sensitive or weather-sensitive.
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+<script src="js/info.js"></script>
+<script>
+(function () {
+  var DATA_ROOT = '/data/';
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function interpolateColor(v, min, max) {
+    var t = Math.max(0, Math.min(1, (v - min) / (max - min)));
+    var r = Math.round(39  + t * (192 - 39));
+    var g = Math.round(174 + t * (57  - 174));
+    var b = Math.round(96  + t * (43  - 96));
+    return 'rgba(' + r + ',' + g + ',' + b + ',0.85)';
+  }
+
+  fetch(DATA_ROOT + 'heatmap.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var days  = d.days;
+      var roads = d.roads;
+      var vals  = d.values;
+
+      var matrixData = [];
+      for (var ri = 0; ri < roads.length; ri++) {
+        for (var di = 0; di < days.length; di++) {
+          matrixData.push({ x: di, y: ri, v: vals[di][ri] });
+        }
+      }
+
+      var minV = 60, maxV = 100;
+      var canvas = document.getElementById('chart-heatmap');
+      canvas.width  = Math.max(700, roads.length * 52);
+      canvas.height = days.length * 42 + 60;
+
+      new Chart(canvas, {
+        type: 'matrix',
+        data: {
+          datasets: [{
+            label: 'Congestion',
+            data: matrixData,
+            backgroundColor: function (ctx) {
+              var v = ctx.dataset.data[ctx.dataIndex].v;
+              return interpolateColor(v, minV, maxV);
+            },
+            borderColor: function () { return css('--bg'); },
+            borderWidth: 2,
+            width:  function (ctx) { return ctx.chart.chartArea ? ctx.chart.chartArea.width  / roads.length - 2 : 44; },
+            height: function (ctx) { return ctx.chart.chartArea ? ctx.chart.chartArea.height / days.length  - 2 : 34; },
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: function (items) {
+                  var item = items[0];
+                  return days[item.dataset.data[item.dataIndex].x];
+                },
+                label: function (item) {
+                  var d2 = item.dataset.data[item.dataIndex];
+                  return roads[d2.y] + ': ' + d2.v;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              min: -0.5,
+              max: days.length - 0.5,
+              offset: false,
+              ticks: {
+                stepSize: 1,
+                callback: function (v) { return days[v] ? days[v].slice(0, 3) : ''; },
+                color: css('--text'),
+                font: { size: 11 },
+              },
+              grid: { display: false },
+            },
+            y: {
+              type: 'linear',
+              min: -0.5,
+              max: roads.length - 0.5,
+              offset: false,
+              ticks: {
+                stepSize: 1,
+                callback: function (v) { return roads[v] ? roads[v] : ''; },
+                color: css('--text'),
+                font: { size: 10 },
+              },
+              grid: { display: false },
+            }
+          }
+        }
+      });
+    });
+
+  fetch(DATA_ROOT + 'monthly_trend.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      new Chart(document.getElementById('chart-monthly'), {
+        type: 'line',
+        data: {
+          labels: d.labels,
+          datasets: [
+            {
+              label: 'Weekday',
+              data: d.weekday,
+              borderColor: '#2980b9',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 4,
+              tension: .3,
+              spanGaps: true,
+            },
+            {
+              label: 'Weekend',
+              data: d.weekend,
+              borderColor: '#27ae60',
+              backgroundColor: 'transparent',
+              borderWidth: 2,
+              pointRadius: 4,
+              borderDash: [4, 3],
+              tension: .3,
+              spanGaps: true,
+            },
+            {
+              label: 'City avg',
+              data: d.labels.map(function () { return d.city_avg; }),
+              borderColor: '#aaa',
+              borderWidth: 1,
+              borderDash: [3, 3],
+              pointRadius: 0,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { labels: { color: css('--text'), font: { size: 11 } } }
+          },
+          scales: {
+            x: { grid: { color: css('--border') }, ticks: { color: css('--text-muted'), font: { size: 10 } } },
+            y: {
+              min: 70, max: 95,
+              grid: { color: css('--border') },
+              ticks: { color: css('--text-muted'), font: { size: 10 } }
+            }
+          }
+        }
+      });
+    });
+
+  fetch(DATA_ROOT + 'weather.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var sorted   = d.conditions.slice().sort(function (a, b) { return a.mean_congestion - b.mean_congestion; });
+      var baseline = d.clear_baseline;
+      new Chart(document.getElementById('chart-weather'), {
+        type: 'bar',
+        data: {
+          labels: sorted.map(function (c) { return c.condition; }),
+          datasets: [{
+            label: 'Mean Congestion Level',
+            data: sorted.map(function (c) { return c.mean_congestion; }),
+            backgroundColor: sorted.map(function (c) {
+              return c.mean_congestion > baseline ? '#c0392b' : '#27ae60';
+            }),
+            borderWidth: 0,
+            borderRadius: 4,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  var delta = sorted[ctx.dataIndex].delta_vs_clear;
+                  var sign  = delta >= 0 ? '+' : '';
+                  return ' ' + ctx.raw + ' (' + sign + delta + ' vs Clear)';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 79, max: 83,
+              grid: { color: css('--border') },
+              ticks: { color: css('--text-muted'), font: { size: 11 } }
+            },
+            y: { grid: { display: false }, ticks: { color: css('--text'), font: { size: 12 } } }
+          }
+        },
+        plugins: [{
+          id: 'baseline-line',
+          afterDraw: function (chart) {
+            var ctx2   = chart.ctx;
+            var xScale = chart.scales.x;
+            var x      = xScale.getPixelForValue(baseline);
+            var top    = chart.chartArea.top;
+            var bottom = chart.chartArea.bottom;
+            ctx2.save();
+            ctx2.strokeStyle = '#6b6b6b';
+            ctx2.lineWidth   = 1.5;
+            ctx2.setLineDash([4, 4]);
+            ctx2.beginPath();
+            ctx2.moveTo(x, top);
+            ctx2.lineTo(x, bottom);
+            ctx2.stroke();
+            ctx2.setLineDash([]);
+            ctx2.fillStyle = '#6b6b6b';
+            ctx2.font      = '10px Inter, system-ui, sans-serif';
+            ctx2.fillText('Clear ' + baseline, x + 4, top + 12);
+            ctx2.restore();
+          }
+        }]
+      });
+    });
+})();
+</script>
+</body>
+</html>

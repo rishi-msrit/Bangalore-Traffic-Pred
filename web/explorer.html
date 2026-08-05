@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Road Explorer - Bangalore Traffic Analysis</title>
+  <meta name="description" content="Explore congestion, speed, capacity, and incident data for any of Bangalore's 16 major roads.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Bangalore <span>Traffic</span></a>
+  <div class="nav-links">
+    <a href="index.html">Overview</a>
+    <a href="explorer.html" class="active">Road Explorer</a>
+    <a href="patterns.html">Patterns</a>
+    <a href="impact.html">Economic Impact</a>
+    <a href="technical.html">Technical</a>
+  </div>
+  <div class="nav-right">
+    <button id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <h1>
+      Road Explorer
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Pick any road from the dropdown to see its full traffic profile -- average congestion trend by month, speed, how often it hits full capacity, incident rate, and how its severity breakdown compares to the city average. Data covers January 2022 to August 2024.</span>
+      </span>
+    </h1>
+    <p>Select a road to see its complete traffic profile across all recorded months.</p>
+  </div>
+
+  <div class="road-select-wrap">
+    <label for="road-select">Road / Intersection</label>
+    <select id="road-select">
+      <option value="">Loading...</option>
+    </select>
+  </div>
+
+  <div id="road-content" style="display:none">
+
+    <div id="chokepoint-banner" style="display:none" class="finding" style="margin-bottom:16px">
+      <strong>Top-5 Chokepoint.</strong> This road is one of the five most congested in Bangalore by mean congestion level.
+    </div>
+
+    <div class="road-stats-grid">
+      <div class="road-stat">
+        <div class="road-stat-label">Mean congestion</div>
+        <div class="road-stat-value" id="stat-congestion">--</div>
+      </div>
+      <div class="road-stat">
+        <div class="road-stat-label">Mean speed</div>
+        <div class="road-stat-value" id="stat-speed">--</div>
+      </div>
+      <div class="road-stat">
+        <div class="road-stat-label">At full capacity</div>
+        <div class="road-stat-value" id="stat-cap">--</div>
+      </div>
+      <div class="road-stat">
+        <div class="road-stat-label">Incidents per record</div>
+        <div class="road-stat-value" id="stat-incidents">--</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">
+          Monthly congestion trend
+          <span class="info-wrap">
+            <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+            <span class="info-tooltip">Average Congestion Level per calendar month for this road (blue line) compared to the city-wide average across all roads (dashed grey). A flat line close to 90+ suggests the road is chronically overloaded, not just seasonally bad.</span>
+          </span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-monthly" height="200"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">
+          Severity breakdown
+          <span class="info-wrap">
+            <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+            <span class="info-tooltip">Proportion of observations that fell into each congestion severity band for this road. Critical means congestion above 90 -- essentially gridlock. Compare this to the city-wide figure of 52.3% critical to see how this road stacks up.</span>
+          </span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-sev-road" height="200"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Context -- how this road compares</div>
+      <div id="road-narrative" style="font-size:.9rem; line-height:1.7; color:var(--text)"></div>
+    </div>
+
+  </div>
+
+  <div id="road-placeholder" class="panel" style="text-align:center; color:var(--text-muted); padding:48px">
+    Select a road above to load its profile.
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/info.js"></script>
+<script>
+(function () {
+  var DATA_ROOT = '/data/';
+  var CITY_AVG   = null;
+  var allRoads   = null;
+  var monthChart = null;
+  var sevChart   = null;
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  var TOP5 = new Set(['Sony World Junction','Sarjapur Road','Anil Kumble Circle','Trinity Circle','CMH Road']);
+
+  Promise.all([
+    fetch(DATA_ROOT + 'roads.json').then(function (r) { return r.json(); }),
+    fetch(DATA_ROOT + 'kpis.json').then(function (r) { return r.json(); })
+  ]).then(function (results) {
+    allRoads = results[0];
+    CITY_AVG = results[1].city_avg_congestion;
+
+    var sel  = document.getElementById('road-select');
+    sel.innerHTML = '';
+    Object.keys(allRoads).sort().forEach(function (road) {
+      var opt  = document.createElement('option');
+      opt.value       = road;
+      opt.textContent = road;
+      sel.appendChild(opt);
+    });
+
+    sel.addEventListener('change', function () {
+      if (sel.value) renderRoad(sel.value);
+    });
+
+    renderRoad(Object.keys(allRoads).sort()[0]);
+    sel.value = Object.keys(allRoads).sort()[0];
+  });
+
+  function renderRoad(road) {
+    var d = allRoads[road];
+    document.getElementById('road-content').style.display = '';
+    document.getElementById('road-placeholder').style.display = 'none';
+
+    var banner = document.getElementById('chokepoint-banner');
+    banner.style.display = TOP5.has(road) ? '' : 'none';
+
+    document.getElementById('stat-congestion').textContent = d.mean_congestion + ' / 100';
+    document.getElementById('stat-speed').textContent      = d.mean_speed + ' km/h';
+    document.getElementById('stat-cap').textContent        = d.capacity_sat_pct + '%';
+    document.getElementById('stat-incidents').textContent  = d.incident_rate;
+
+    var narrative = document.getElementById('road-narrative');
+    var vsCity    = d.vs_city_avg > 0
+      ? ('+' + d.vs_city_avg.toFixed(1) + ' above')
+      : (d.vs_city_avg.toFixed(1) + ' below');
+
+    narrative.innerHTML =
+      road + ' sits in <strong>' + d.area + '</strong>. ' +
+      'Its mean congestion of <strong>' + d.mean_congestion + '</strong> is ' + vsCity + ' the city average of ' + CITY_AVG + '. ' +
+      'The road operates at full road capacity <strong>' + d.capacity_sat_pct + '%</strong> of the time. ' +
+      'It records an average of <strong>' + d.incident_rate + ' incidents per observation</strong>. ' +
+      'The breakdown shows <strong>' + d.severity_pct.Critical + '%</strong> of readings in the Critical band (above 90), versus 52.3% city-wide.';
+
+    if (monthChart) monthChart.destroy();
+    if (sevChart)   sevChart.destroy();
+
+    var mc = d.monthly_congestion;
+    monthChart = new Chart(document.getElementById('chart-monthly'), {
+      type: 'line',
+      data: {
+        labels: mc.labels,
+        datasets: [
+          {
+            label: road,
+            data: mc.values,
+            borderColor: '#2980b9',
+            backgroundColor: 'rgba(41,128,185,.08)',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: .3,
+            spanGaps: true,
+          },
+          {
+            label: 'City average',
+            data: mc.labels.map(function () { return CITY_AVG; }),
+            borderColor: '#aaa',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            pointRadius: 0,
+            tension: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: css('--text'), font: { size: 11 } } }
+        },
+        scales: {
+          x: { grid: { color: css('--border') }, ticks: { color: css('--text-muted'), font: { size: 10 } } },
+          y: {
+            min: 60, max: 100,
+            grid: { color: css('--border') },
+            ticks: { color: css('--text-muted'), font: { size: 10 } }
+          }
+        }
+      }
+    });
+
+    var sev = d.severity_pct;
+    sevChart = new Chart(document.getElementById('chart-sev-road'), {
+      type: 'bar',
+      data: {
+        labels: ['Critical', 'High', 'Moderate', 'Low'],
+        datasets: [{
+          label: 'Share of observations',
+          data: [sev.Critical, sev.High, sev.Moderate, sev.Low],
+          backgroundColor: ['#c0392b','#d35400','#e2b90f','#27ae60'],
+          borderWidth: 0,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: function (ctx) { return ' ' + ctx.raw + '%'; } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: css('--text'), font: { size: 11 } } },
+          y: {
+            max: 100,
+            grid: { color: css('--border') },
+            ticks: { color: css('--text-muted'), font: { size: 10 }, callback: function (v) { return v + '%'; } }
+          }
+        }
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>

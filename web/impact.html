@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Economic Impact - Bangalore Traffic Analysis</title>
+  <meta name="description" content="Estimated daily economic cost of traffic congestion at Bangalore's top 5 chokepoints -- productivity loss and fuel waste.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
+  <style>
+    .impact-hero {
+      text-align: center;
+      padding: 40px 24px 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .impact-hero-number {
+      font-size: 3.2rem;
+      font-weight: 700;
+      letter-spacing: -.04em;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .impact-hero-label {
+      font-size: .95rem;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+    .impact-hero-sub {
+      font-size: .82rem;
+      color: var(--text-muted);
+      margin-top: 12px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .assumption-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+    }
+    .assumption-row:last-child { border-bottom: none; }
+    .assumption-key { color: var(--text-muted); }
+    .assumption-val { font-weight: 600; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">Bangalore <span>Traffic</span></a>
+  <div class="nav-links">
+    <a href="index.html">Overview</a>
+    <a href="explorer.html">Road Explorer</a>
+    <a href="patterns.html">Patterns</a>
+    <a href="impact.html" class="active">Economic Impact</a>
+    <a href="technical.html">Technical</a>
+  </div>
+  <div class="nav-right">
+    <button id="theme-btn" aria-label="Switch theme"></button>
+  </div>
+</nav>
+
+<main class="page">
+
+  <div class="page-header">
+    <h1>
+      Economic Impact
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">These numbers estimate the daily cost of congestion delays at Bangalore's top 5 chokepoints. Two costs are counted: time lost by commuters (productivity) and extra fuel burned while idling. The estimates use average daily traffic volumes from the dataset combined with standard wage and fuel assumptions.</span>
+      </span>
+    </h1>
+    <p>What congestion at the top 5 roads costs the city every single day.</p>
+  </div>
+
+  <div class="panel">
+    <div class="impact-hero" id="impact-hero">
+      <div class="impact-hero-number" id="hero-number">--</div>
+      <div class="impact-hero-label">estimated daily economic loss -- top 5 chokepoints</div>
+      <div class="impact-hero-sub">
+        Every commuter stuck in traffic for 15 minutes loses Rs 37.50 in productive time and wastes Rs 20.60 in fuel. Multiplied across ~1.85 lakh vehicles per day at these five roads, the total reaches over a crore of rupees -- every day.
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top:0">
+      <div>
+        <div class="panel-title" style="margin-bottom:12px">Per-vehicle cost breakdown</div>
+        <div class="assumption-row">
+          <span class="assumption-key">Productivity loss</span>
+          <span class="assumption-val" id="pv-prod">--</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-key">Fuel waste</span>
+          <span class="assumption-val" id="pv-fuel">--</span>
+        </div>
+        <div class="assumption-row" style="border-top:1px solid var(--border); margin-top:4px; padding-top:12px">
+          <span class="assumption-key" style="font-weight:600; color:var(--text)">Total per vehicle</span>
+          <span class="assumption-val" id="pv-total">--</span>
+        </div>
+      </div>
+      <div>
+        <div class="panel-title" style="margin-bottom:12px">Assumptions</div>
+        <div class="assumption-row">
+          <span class="assumption-key">Avg delay at chokepoint</span>
+          <span class="assumption-val">15 minutes</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-key">Avg hourly wage (Bangalore)</span>
+          <span class="assumption-val">Rs 150 / hr</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-key">Fuel wasted (15-min idle)</span>
+          <span class="assumption-val">0.2 litres</span>
+        </div>
+        <div class="assumption-row">
+          <span class="assumption-key">Petrol price</span>
+          <span class="assumption-val">Rs 103 / litre</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      Daily loss per road -- productivity and fuel
+      <span class="info-wrap">
+        <span class="info-icon" tabindex="0" role="button" aria-label="More information">i</span>
+        <span class="info-tooltip">Each bar represents one of the top 5 chokepoints. The red portion is the estimated productivity lost by commuters (time cost), and the orange portion is the fuel cost. The length of the full bar is the total daily economic loss for that road.</span>
+      </span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-impact" height="220"></canvas></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Total daily breakdown</div>
+    <div class="finding">
+      Productivity accounts for roughly <strong>65%</strong> of the total daily loss, fuel for the remaining <strong>35%</strong>. The heaviest single contributor is the road with the highest average daily traffic volume -- not necessarily the most congested by congestion score.
+    </div>
+    <div style="margin-top:20px; display:flex; gap:24px; flex-wrap:wrap">
+      <div>
+        <div class="kpi-label">Total productivity loss</div>
+        <div class="kpi-value" id="total-prod" style="font-size:1.4rem">--</div>
+      </div>
+      <div>
+        <div class="kpi-label">Total fuel loss</div>
+        <div class="kpi-value" id="total-fuel" style="font-size:1.4rem">--</div>
+      </div>
+      <div>
+        <div class="kpi-label">Combined daily loss</div>
+        <div class="kpi-value accent" id="total-combined" style="font-size:1.4rem">--</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/info.js"></script>
+<script>
+(function () {
+  var DATA_ROOT = '/data/';
+
+  function css(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function fmt_lakh(v) {
+    return 'Rs ' + (v / 1e5).toFixed(1) + 'L';
+  }
+
+  function fmt_crore(v) {
+    if (v >= 1e7) return 'Rs ' + (v / 1e7).toFixed(2) + ' crore';
+    return fmt_lakh(v);
+  }
+
+  fetch(DATA_ROOT + 'economic.json')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      var gt  = d.totals.grand_total;
+      var pv  = d.per_vehicle;
+
+      document.getElementById('hero-number').textContent  = fmt_crore(gt);
+      document.getElementById('pv-prod').textContent      = 'Rs ' + pv.productivity_loss.toFixed(2);
+      document.getElementById('pv-fuel').textContent      = 'Rs ' + pv.fuel_loss.toFixed(2);
+      document.getElementById('pv-total').textContent     = 'Rs ' + (pv.productivity_loss + pv.fuel_loss).toFixed(2);
+      document.getElementById('total-prod').textContent   = fmt_lakh(d.totals.prod_loss);
+      document.getElementById('total-fuel').textContent   = fmt_lakh(d.totals.fuel_loss);
+      document.getElementById('total-combined').textContent = fmt_crore(gt);
+
+      var roads      = d.per_road.slice().reverse();
+      var labels     = roads.map(function (r) { return r.road.length > 22 ? r.road.slice(0,20) + '...' : r.road; });
+      var prodVals   = roads.map(function (r) { return +(r.prod_loss / 1e5).toFixed(2); });
+      var fuelVals   = roads.map(function (r) { return +(r.fuel_loss / 1e5).toFixed(2); });
+
+      new Chart(document.getElementById('chart-impact'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Productivity loss',
+              data: prodVals,
+              backgroundColor: '#c0392b',
+              borderWidth: 0,
+              borderRadius: { topLeft: 0, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+            },
+            {
+              label: 'Fuel cost',
+              data: fuelVals,
+              backgroundColor: '#e67e22',
+              borderWidth: 0,
+              borderRadius: { topLeft: 0, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: css('--border') },
+              ticks: {
+                color: css('--text-muted'),
+                font: { size: 11 },
+                callback: function (v) { return 'Rs ' + v + 'L'; }
+              }
+            },
+            y: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { color: css('--text'), font: { size: 11 } }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: css('--text'), font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                label: function (ctx) {
+                  return ' ' + ctx.dataset.label + ': Rs ' + ctx.raw + 'L';
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+})();
+</script>
+</body>
+</html>
