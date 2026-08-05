@@ -1,11 +1,4 @@
 {
-  "public": true,
-  "cleanUrls": false,
-  "rewrites": [
-    { "source": "/", "destination": "/web/index.html" },
-    { "source": "/explorer", "destination": "/web/explorer.html" },
-    { "source": "/patterns", "destination": "/web/patterns.html" },
-    { "source": "/impact", "destination": "/web/impact.html" },
-    { "source": "/technical", "destination": "/web/technical.html" }
-  ]
+  "outputDirectory": "web",
+  "buildCommand": "mkdir -p web/data && cp -r data/* web/data/"
 }

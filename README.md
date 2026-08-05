@@ -1,48 +1,113 @@
 # Bangalore Traffic Pattern Analysis
 
-Dataset: [Bangalore Traffic Pulse — Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 – Aug 2024
+Dataset: [Bangalore Traffic Pulse - Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 to Aug 2024
+
+This project has two layers built on the same dataset:
+
+1. **Static Python analysis** (`main.py`) - pandas and matplotlib pipeline that cleans the data, computes all findings, and saves 6 plots as PNGs.
+2. **Interactive web layer** (`build_data.py` + `web/`) - all analysis recomputed and exported to JSON, consumed by a 5-page static site with Chart.js charts, a road explorer, and a technical/analyst section.
+
+---
 
 ## Dataset Description
 
 | Field | Description |
 |---|---|
-| `Date` | Observation date (2022–2024) |
+| `Date` | Observation date (2022 to 2024) |
 | `Area Name` | One of 8 Bangalore zones |
 | `Road/Intersection Name` | One of 16 specific roads |
 | `Traffic Volume` | Vehicle count at the location |
 | `Average Speed` | Speed in km/h |
-| `Congestion Level` | 0–100 scale (100 = fully blocked) |
+| `Congestion Level` | 0 to 100 scale (100 = fully blocked) |
 | `Road Capacity Utilization` | % of road capacity in use |
 | `Incident Reports` | Number of incidents recorded |
 | `Weather Conditions` | Clear / Fog / Rain / Windy / Overcast |
+| `Travel Time Index` | Ratio of travel time vs free-flow |
+| `Environmental Impact` | Pollution proxy metric |
+| `Public Transport Usage` | % using public transport |
+| `Traffic Signal Compliance` | % compliance at signals |
+| `Parking Usage` | % parking occupancy |
+| `Pedestrian and Cyclist Count` | Foot and cycle traffic |
+| `Roadwork and Construction Activity` | Yes / No flag |
 
 ---
 
-## Steps Performed
+## Key Findings
 
-| Sr No | Description |
+### Chokepoints
+- **Top 5:** Sony World Junction (94.1), Sarjapur Road (93.8), Anil Kumble Circle (90.8), Trinity Circle (90.4), CMH Road (88.2)
+- Top 5 average congestion: **91.5 / 100**, which is **13.2% above the city average of 80.8**
+- These 5 roads carry **52.3% of total traffic volume**
+
+### Speed
+- City-wide average speed: **39.4 km/h**
+- Top 5 chokepoints average speed: **37.3 km/h**
+- Worst road -- Sony World Junction: **36.0 km/h**
+- Least congested roads average: **43.2 km/h** (19% faster)
+
+### Severity
+- **52.3% of all 8,936 observations** fall in the Critical (above 90) congestion band
+- Sony World Junction is in Critical state **87% of the time**
+
+### Capacity Saturation
+- **74.2% of all observations** show roads operating at 100% capacity
+- Top 5 chokepoints are at full capacity **89.8% of the time** -- structural overload, not peak-hour congestion
+- Least congested roads hit full capacity only **40.8% of the time**
+
+### Incidents
+- High-congestion zones (above 75) record **2.9x more incidents** than low-congestion zones
+- Top 5 roads: avg **1.83 incidents/record** vs **1.03** at the 5 least congested roads
+
+### Economic Impact
+*(15-min avg delay, Rs 150/hr wage, Rs 103/litre petrol -- stated assumptions)*
+- Productivity loss per vehicle: **Rs 37.50**
+- Fuel waste per vehicle: **Rs 20.60**
+- Estimated daily vehicles at top 5: **~1.85 lakh**
+- **Total estimated daily loss: Rs 1.07 crore** (Rs 69.3L productivity + Rs 38.1L fuel)
+
+### Weather
+- Windy weather produces the highest congestion: **82.37** (+1.65 vs Clear baseline of 80.72)
+- Rain and Overcast are marginally *below* the Clear baseline -- congestion is structural, not weather-driven
+
+---
+
+## Assumptions Used
+
+| Assumption | Value | Basis |
+|---|---|---|
+| Average delay at chokepoint | 15 minutes | Project specification |
+| Average hourly wage (Bangalore) | Rs 150/hr | Rs 30,000/month divided by 200 working hours |
+| Fuel wasted during 15-min idle | 0.2 litres | Standard petrol car estimate |
+| Petrol price | Rs 103/litre | Bangalore approximate price (2024) |
+| "Full capacity" threshold | >= 99% utilization | Dataset-based |
+| "High congestion" threshold | Congestion Level > 75 | Dataset-based classification |
+
+---
+
+## Static Analysis (main.py)
+
+### Steps Performed
+
+| Step | Description |
 |---|---|
-| `1` | Load raw: data shape, columns, dtypes |
-| `2` | Data cleaning: parse dates, strip whitespace, check nulls, add time features |
-| `3` | EDA  descriptive: stats + correlation with Congestion Level |
-| `4` | Top 5 Chokepoints: ranked by mean Congestion Level |
-| `5` | Economic Impact: productivity loss + fuel waste (₹/day) |
-| `6`| Speed Analysis: average speed per road, chokepoints highlighted |
-| `7` | Capacity Saturation: % of time each road runs at 100% capacity |
-| `8` | Incident Frequency: high vs low congestion zone comparison |
-| `9` | Plot: Economic impact stacked bar (per road) |
-| `10` | Plot: Top 5 chokepoints vs city average (bar chart) |
-| `11` | Plot: Congestion heatmap — Day of Week × Road |
-| `12` | Plot: Monthly trend — Weekday vs Weekend (2022–2024) |
-| `13` | Plot: Average speed per road — all 16 roads |
-| `14` | Plot: Weather conditions vs congestion level |
-| `15` | Congestion Severity Classification: 4-band breakdown |
-| `16` | Final summary printout |
+| 1 | Load raw data: shape, columns, dtypes |
+| 2 | Clean: parse dates, strip whitespace, check nulls, add time features |
+| 3 | EDA: descriptive stats + correlation with Congestion Level |
+| 4 | Top 5 chokepoints ranked by mean Congestion Level |
+| 5 | Economic impact: productivity loss + fuel waste (Rs/day) |
+| 6 | Speed analysis: average speed per road, chokepoints highlighted |
+| 7 | Capacity saturation: % of time each road runs at 100% capacity |
+| 8 | Incident frequency: high vs low congestion zone comparison |
+| 9 | Plot: economic impact stacked bar (per road) |
+| 10 | Plot: top 5 chokepoints vs city average |
+| 11 | Plot: congestion heatmap -- day of week x road |
+| 12 | Plot: monthly trend -- weekday vs weekend (2022 to 2024) |
+| 13 | Plot: average speed per road (all 16 roads) |
+| 14 | Plot: weather conditions vs congestion level |
+| 15 | Congestion severity classification: 4-band breakdown |
+| 16 | Final summary printout |
 
-
----
-
-## Results & Visualizations
+### Plots
 
 <div align="center">
 
@@ -59,67 +124,14 @@ Dataset: [Bangalore Traffic Pulse — Kaggle](https://www.kaggle.com/datasets/pr
 <img src="images/weather_impact.png" width="75%"/>
 </div>
 
----
-## Key Findings
-
-### Chokepoints
-- **Top 5:** Sony World Junction (94.1), Sarjapur Road (93.8), Anil Kumble Circle (90.8), Trinity Circle (90.4), CMH Road (88.2)
-- Top 5 average congestion: **91.5 / 100**, which is **13.2% above the city average of 80.8**
-- These 5 roads carry **52.3% of total traffic volume**
-
-### Speed
-- City-wide average speed: **39.4 km/h**
-- Top 5 chokepoints average speed: **37.3 km/h**
-- Worst road — Sony World Junction: **36.0 km/h**
-- Least congested roads average: **43.2 km/h** (19% faster)
-
-### Severity
-- **52.3% of all 8,936 observations** fall in the Critical (>90) congestion band
-- Sony World Junction is in Critical state **87% of the time**
-
-### Capacity Saturation
-- **74.2% of all observations** show roads operating at 100% capacity
-- Top 5 chokepoints are at full capacity **89.8% of the time** — this is structural overload, not just peak-hour congestion
-- Least congested roads hit full capacity only **40.8% of the time**
-
-### Incidents
-- High-congestion zones (>75) record **2.9× more incidents** than low-congestion zones
-- Top 5 roads: avg **1.83 incidents/record** vs **1.03** at the 5 least congested roads
-
-### Economic Impact
-*(15-min avg delay, ₹150/hr wage, ₹103/litre petrol — stated assumptions)*
-- Productivity loss per vehicle: **₹37.50**
-- Fuel waste per vehicle: **₹20.60**
-- Estimated daily vehicles at top 5: **~1.85 lakh**
-- **Total estimated daily loss: ₹1.07 crore** (₹69.3L productivity + ₹38.1L fuel)
-
-### Weather
-- Windy weather produces the highest congestion: **82.37** (+1.65 vs Clear baseline of 80.72)
-- Rain and Overcast are marginally *below* the Clear baseline — suggesting congestion is structural, not weather-driven
-
----
-
-## Assumptions Used
-
-| Assumption | Value | Basis |
-|---|---|---|
-| Average delay at chokepoint | 15 minutes | Project specification |
-| Average hourly wage (Bangalore) | ₹150/hr | ₹30,000/month ÷ 200 working hours |
-| Fuel wasted during 15-min idle | 0.2 litres | Standard petrol car estimate |
-| Petrol price | ₹103/litre | Bangalore approximate price (2024) |
-| "Full capacity" threshold | ≥ 99% utilization | Dataset-based |
-| "High congestion" threshold | Congestion Level > 75 | Dataset-based classification |
-
----
-
-## How to Run
+### How to Run
 
 ```bash
 pip install pandas matplotlib
 python -X utf8 main.py
 ```
 
-> The `-X utf8` flag ensures the ₹ symbol prints correctly on Windows.
+> The `-X utf8` flag ensures the Rs symbol prints correctly on Windows.
 
 ---
 
@@ -127,27 +139,64 @@ python -X utf8 main.py
 
 **Live site:** [link to be added after Vercel deployment]
 
-A static, no-backend interactive website built on top of the same dataset and analysis. All computation runs once offline in Python (`build_data.py`), results are exported to structured JSON files, and the site reads those files client-side at load time using `fetch()`. No server, no live backend, no API.
+A static, no-backend interactive website. All computation runs once offline in Python (`build_data.py`), results are exported to JSON, and the site reads those files client-side at load time. No server, no live backend.
 
-### Why this architecture
+The site has two types of pages:
 
-The underlying data does not change in real time. Running computation once and serving static JSON is faster, cheaper (free on Vercel), and more portable than maintaining a live backend. This is a standard pattern for dashboards built on fixed datasets.
+- **Consumer-facing** (plain language, practical insights): Overview, Road Explorer, Patterns, Economic Impact
+- **Technical/analyst** (methodology and model output): correlation matrix, regression results, clustering, anomalies
+
+### Screenshots
+
+<div align="center">
+
+**Overview -- light mode**
+<img src="images/web_overview_light.png" width="90%"/>
+<br><br>
+
+**Overview -- dark mode**
+<img src="images/web_overview_dark.png" width="90%"/>
+<br><br>
+
+**Road Explorer**
+<img src="images/web_explorer.png" width="90%"/>
+<br><br>
+
+**Time and Weather Patterns**
+<img src="images/web_patterns.png" width="90%"/>
+<br><br>
+
+**Economic Impact**
+<img src="images/web_impact.png" width="90%"/>
+<br><br>
+
+**Technical Analysis**
+<img src="images/web_technical.png" width="90%"/>
+
+</div>
 
 ### Pages
 
-| Page | Audience | What it shows |
+| Page | Audience | Content |
 |---|---|---|
-| Overview | General | City-wide KPI strip, top-5 chokepoints bar, severity distribution, all-roads speed comparison |
-| Road Explorer | General | Per-road profile: monthly congestion trend vs city average, severity breakdown, speed, capacity saturation, incident rate |
-| Patterns | General | Day-of-week x road congestion heatmap, weekday vs weekend monthly trend, weather-impact bar chart |
-| Economic Impact | General | Rs 1.07 crore/day breakdown by road and by cost type (productivity vs fuel), assumptions displayed |
-| Technical | Analysts | Full correlation matrix, linear regression coefficients and metrics (R2, MAE), k-means road clustering PCA scatter, anomaly flag table |
+| Overview | General | KPI strip, top-5 bar, severity doughnut, all-roads speed comparison |
+| Road Explorer | General | Per-road monthly trend vs city average, severity breakdown, speed, capacity, incidents |
+| Patterns | General | Day-of-week x road heatmap, weekday/weekend monthly trend, weather bar |
+| Economic Impact | General | Rs 1.07 crore/day hero figure, stacked bar per road (productivity + fuel) |
+| Technical | Analysts | Correlation matrix, regression coefficients + R2/MAE, k-means PCA scatter, anomaly table |
+
+### Technical layer details
+
+- **Correlation matrix:** Pearson correlation across all 11 numeric fields
+- **Regression model:** Ordinary least squares predicting Congestion Level from 10 features (features standardised before fitting)
+- **Clustering:** k-means (k=4) on 6 road-level aggregates, visualised via PCA reduction to 2D
+- **Anomaly detection:** Per-road z-score flagging (threshold: z > 2.5 vs that road's own baseline)
 
 ### Project structure (new files)
 
 ```
-build_data.py          offline computation script (run once to regenerate data/)
-data/                  generated JSON files consumed by the site
+build_data.py           offline computation script (run once)
+data/                   generated JSON files
   kpis.json
   roads.json
   heatmap.json
@@ -158,16 +207,17 @@ data/                  generated JSON files consumed by the site
   clusters.json
   anomalies.json
   monthly_trend.json
-web/                   static site (HTML, CSS, vanilla JS)
+web/                    static site
   index.html
   explorer.html
   patterns.html
   impact.html
   technical.html
-  css/style.css
-  js/theme.js          light/dark mode toggle
-  js/info.js           reusable info tooltip component
-vercel.json            Vercel routing config
+  css/style.css         design system with light/dark CSS variables
+  js/theme.js           icon-only dark/light toggle, persists in localStorage
+  js/info.js            reusable info tooltip component (hover desktop, tap mobile)
+  data/                 copy of the JSON files for local serving
+vercel.json             Vercel config
 ```
 
 ### How to run locally
@@ -175,21 +225,17 @@ vercel.json            Vercel routing config
 ```bash
 pip install pandas scikit-learn numpy
 python -X utf8 build_data.py
-python -m http.server 8765
+python -m http.server 8765 --directory web
 ```
 
-Then open `http://localhost:8765/web/index.html` in a browser.
+Then open `http://localhost:8765/index.html`.
 
 ### How to regenerate data
 
-If `data.csv` is updated, run `build_data.py` again. It overwrites all JSON files in `data/` and does not touch `main.py` or any other existing file.
+If `data.csv` is updated, run `build_data.py` again. It overwrites all JSON files in `data/` and `web/data/` without touching `main.py` or any other file.
 
 ### Deploying to Vercel
 
-Connect the repo to Vercel. The `vercel.json` at the repo root handles routing so that `/web/` pages and `/data/` JSON files are both accessible from the same deployment.
-
-### Screenshots
-
-[to be added after deployment]
+Connect the repo to Vercel. The `vercel.json` sets `web/` as the output directory and copies the `data/` JSON files into `web/data/` at build time so fetch paths resolve correctly.
 
 ---
