@@ -2,6 +2,8 @@
 
 Live Web App: [https://bangalore-traffic-pred.vercel.app/](https://bangalore-traffic-pred.vercel.app/)
 ---
+Bangalore Traffic Pattern Analysis is an end-to-end data analytics project evaluating 8,936 observations across 16 major road corridors and 8 urban zones from January 2022 to August 2024. The project quantifies the city's structural congestion bottlenecks, revealing that 74.2% of road observations run at full capacity and top chokepoints generate an estimated daily economic loss of ₹1.07 crore through wasted time and fuel. Delivered as a dual-layer solution, it pairs a traditional Python/pandas exploratory script (`main.py`) with an interactive, precomputed web application (`web/`) deployed on Vercel for public stakeholder exploration and technical model inspection.
+
 This project has two layers built on the same dataset:
 
 1. **Static Python analysis** (`main.py`) - pandas and matplotlib pipeline that cleans the data, computes all findings, and saves 6 plots as PNGs.
