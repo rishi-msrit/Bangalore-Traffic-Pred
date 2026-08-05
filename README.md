@@ -1,12 +1,13 @@
 # Bangalore Traffic Pattern Analysis
 
-Dataset: [Bangalore Traffic Pulse - Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 to Aug 2024
+Live Web App: [https://bangalore-traffic-pred.vercel.app/](https://bangalore-traffic-pred.vercel.app/)
 
 This project has two layers built on the same dataset:
 
 1. **Static Python analysis** (`main.py`) - pandas and matplotlib pipeline that cleans the data, computes all findings, and saves 6 plots as PNGs.
 2. **Interactive web layer** (`build_data.py` + `web/`) - all analysis recomputed and exported to JSON, consumed by a 5-page static site with Chart.js charts, a road explorer, and a technical/analyst section.
 
+Dataset: [Bangalore Traffic Pulse - Kaggle](https://www.kaggle.com/datasets/preethamgouda/banglore-city-traffic-dataset) | Records: 8,936 | Period: Jan 2022 to Aug 2024
 ---
 
 ## Dataset Description
@@ -42,7 +43,7 @@ This project has two layers built on the same dataset:
 ### Speed
 - City-wide average speed: **39.4 km/h**
 - Top 5 chokepoints average speed: **37.3 km/h**
-- Worst road -- Sony World Junction: **36.0 km/h**
+- Worst road - Sony World Junction: **36.0 km/h**
 - Least congested roads average: **43.2 km/h** (19% faster)
 
 ### Severity
@@ -51,7 +52,7 @@ This project has two layers built on the same dataset:
 
 ### Capacity Saturation
 - **74.2% of all observations** show roads operating at 100% capacity
-- Top 5 chokepoints are at full capacity **89.8% of the time** -- structural overload, not peak-hour congestion
+- Top 5 chokepoints are at full capacity **89.8% of the time** - structural overload, not peak-hour congestion
 - Least congested roads hit full capacity only **40.8% of the time**
 
 ### Incidents
@@ -59,7 +60,7 @@ This project has two layers built on the same dataset:
 - Top 5 roads: avg **1.83 incidents/record** vs **1.03** at the 5 least congested roads
 
 ### Economic Impact
-*(15-min avg delay, Rs 150/hr wage, Rs 103/litre petrol -- stated assumptions)*
+*(15-min avg delay, Rs 150/hr wage, Rs 103/litre petrol - stated assumptions)*
 - Productivity loss per vehicle: **Rs 37.50**
 - Fuel waste per vehicle: **Rs 20.60**
 - Estimated daily vehicles at top 5: **~1.85 lakh**
@@ -67,7 +68,7 @@ This project has two layers built on the same dataset:
 
 ### Weather
 - Windy weather produces the highest congestion: **82.37** (+1.65 vs Clear baseline of 80.72)
-- Rain and Overcast are marginally *below* the Clear baseline -- congestion is structural, not weather-driven
+- Rain and Overcast are marginally *below* the Clear baseline - congestion is structural, not weather-driven
 
 ---
 
@@ -100,8 +101,8 @@ This project has two layers built on the same dataset:
 | 8 | Incident frequency: high vs low congestion zone comparison |
 | 9 | Plot: economic impact stacked bar (per road) |
 | 10 | Plot: top 5 chokepoints vs city average |
-| 11 | Plot: congestion heatmap -- day of week x road |
-| 12 | Plot: monthly trend -- weekday vs weekend (2022 to 2024) |
+| 11 | Plot: congestion heatmap - day of week x road |
+| 12 | Plot: monthly trend - weekday vs weekend (2022 to 2024) |
 | 13 | Plot: average speed per road (all 16 roads) |
 | 14 | Plot: weather conditions vs congestion level |
 | 15 | Congestion severity classification: 4-band breakdown |
@@ -137,43 +138,58 @@ python -X utf8 main.py
 
 ## Interactive Web Layer
 
-**Live site:** [link to be added after Vercel deployment]
+**Live site:** [https://bangalore-traffic-pred.vercel.app](https://bangalore-traffic-pred.vercel.app)
 
-A static, no-backend interactive website. All computation runs once offline in Python (`build_data.py`), results are exported to JSON, and the site reads those files client-side at load time. No server, no live backend.
+A static, no-backend interactive website deployed on Vercel. All data computation runs once offline in Python (`build_data.py`), results are exported to JSON files, and the web interface loads and renders those files client-side using Chart.js.
 
-The site has two types of pages:
+The site is structured into two main sections:
+- **Consumer-facing Narrative Pages:** City Overview, Road Explorer, Time & Weather Patterns, Economic Impact
+- **Technical & Analyst Section:** Pairwise Correlation Matrix, Linear Regression Model Results, K-Means Cluster Archetypes, Anomaly Detection Table
 
-- **Consumer-facing** (plain language, practical insights): Overview, Road Explorer, Patterns, Economic Impact
-- **Technical/analyst** (methodology and model output): correlation matrix, regression results, clustering, anomalies
+---
 
-### Screenshots
+### Dashboard Visualizations & Screenshots
 
 <div align="center">
 
-**Overview -- light mode**
-<img src="images/web_overview_light.png" width="90%"/>
+#### 1. City Overview & Key Metrics
+<img src="images/web_city_overview.jpeg" width="75%"/>
+<br>
+<em>Summary of overall city metrics: 80.82 average congestion score, 52.3% critical severity share, 74.2% structural capacity saturation, and Rs 1.07 crore daily economic loss across top 5 chokepoints.</em>
 <br><br>
 
-**Overview -- dark mode**
-<img src="images/web_overview_dark.png" width="90%"/>
+#### 2. Interactive Road Explorer
+<img src="images/web_road_explorer.jpeg" width="75%"/>
+<br>
+<em>Per-road interactive profile (shown for 100 Feet Road): displays mean congestion (87.11/100), average speed (38.4 km/h), full capacity percentage (88.6%), incident rates (1.8/record), monthly trend line vs city baseline, and severity distribution breakdown.</em>
 <br><br>
 
-**Road Explorer**
-<img src="images/web_explorer.png" width="90%"/>
+#### 3. Time & Weather Patterns Analysis
+<img src="images/web_time_weather_patterns.jpeg" width="75%"/>
+<br>
+<em>Day-of-week x road congestion heatmap, monthly weekday vs weekend trend tracking, and weather condition comparisons highlighting structural overload over weather sensitivity.</em>
 <br><br>
 
-**Time and Weather Patterns**
-<img src="images/web_patterns.png" width="90%"/>
+#### 4. Daily Economic Loss Breakdown
+<img src="images/web_economic_impact.jpeg" width="75%"/>
+<br>
+<em>Stacked economic loss breakdown per top-5 chokepoint differentiating commuter productivity loss (Rs 37.50/vehicle) and fuel waste (Rs 20.60/vehicle).</em>
 <br><br>
 
-**Economic Impact**
-<img src="images/web_impact.png" width="90%"/>
+#### 5. Pairwise Correlation Matrix (Technical Section)
+<img src="images/web_correlation_matrix.jpeg" width="75%"/>
+<br>
+<em>Full correlation matrix heatmap across 11 numeric parameters including Traffic Volume, Average Speed, Congestion Level, Travel Time Index, Road Capacity Utilization, and Incident Reports.</em>
 <br><br>
 
-**Technical Analysis**
-<img src="images/web_technical.png" width="90%"/>
+#### 6. K-Means Road Cluster Archetypes (Technical Section)
+<img src="images/web_cluster_assignments.jpeg" width="75%"/>
+<br>
+<em>K-Means clustering assignments categorizing all 16 roads into archetype groupings: Severe Chokepoint, Relatively Clear Road, and Moderate-Flow Road with mean speeds and congestion scores.</em>
 
 </div>
+
+---
 
 ### Pages
 
@@ -185,14 +201,14 @@ The site has two types of pages:
 | Economic Impact | General | Rs 1.07 crore/day hero figure, stacked bar per road (productivity + fuel) |
 | Technical | Analysts | Correlation matrix, regression coefficients + R2/MAE, k-means PCA scatter, anomaly table |
 
-### Technical layer details
+### Technical Layer Details
 
 - **Correlation matrix:** Pearson correlation across all 11 numeric fields
 - **Regression model:** Ordinary least squares predicting Congestion Level from 10 features (features standardised before fitting)
 - **Clustering:** k-means (k=4) on 6 road-level aggregates, visualised via PCA reduction to 2D
 - **Anomaly detection:** Per-road z-score flagging (threshold: z > 2.5 vs that road's own baseline)
 
-### Project structure (new files)
+### Project Structure
 
 ```
 build_data.py           offline computation script (run once)
@@ -216,11 +232,11 @@ web/                    static site
   css/style.css         design system with light/dark CSS variables
   js/theme.js           icon-only dark/light toggle, persists in localStorage
   js/info.js            reusable info tooltip component (hover desktop, tap mobile)
-  data/                 copy of the JSON files for local serving
+  data/                 copy of JSON files for local serving
 vercel.json             Vercel config
 ```
 
-### How to run locally
+### How to Run Locally
 
 ```bash
 pip install pandas scikit-learn numpy
@@ -228,9 +244,9 @@ python -X utf8 build_data.py
 python -m http.server 8765 --directory web
 ```
 
-Then open `http://localhost:8765/index.html`.
+Then open `http://localhost:8765/index.html` in a browser.
 
-### How to regenerate data
+### How to Regenerate Data
 
 If `data.csv` is updated, run `build_data.py` again. It overwrites all JSON files in `data/` and `web/data/` without touching `main.py` or any other file.
 
